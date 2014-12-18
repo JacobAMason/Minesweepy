@@ -42,22 +42,18 @@ class Board:
 
     _alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
 
-    def __init__(self, size, startX, startY, randSeed=None):
+    def __init__(self, sizeX, sizeY, mines, startX, startY, randSeed=None):
         # translate input size into board sizes. (Obviously, you can change this and create custom board sizes.)
-        if size == 1:
-            self.sizeX = 9
-            self.sizeY = 9
-            self.mines = 10
-        elif size == 2:
-            self.sizeX = 16
-            self.sizeY = 16
-            self.mines = 40
-        elif size == 3:
-            self.sizeX = 26
-            self.sizeY = 26
-            self.mines = 120
+        if sizeX > 0 and sizeX <= 26 and sizeY > 0 and sizeY <= 26:
+            self.sizeX = int(sizeX)
+            self.sizeY = int(sizeY)
         else:
-            raise ValueError("Invalid board size. Options are 1, 2, or 3.")
+            raise ValueError("Invalid board size. Must be between 1 and 26")
+
+        if mines > 0 and mines < (self.sizeX * self.sizeY)/2:
+            self.mines = int(mines)
+        else:
+            raise ValueError("Invalid number of mines.")
 
         # Make sure that the starting coordinate given is valid for this board size.
         if startX not in range(self.sizeX) or startY not in range(self.sizeY):
@@ -183,7 +179,8 @@ class Board:
         for row in self.visibility:
             if Board._tile.hidden in row:
                 return True
-        return False
+        
+        return (self.mines != self.flags)
 
     # The running loop thar prompts users for input.
     def run(self):
@@ -230,6 +227,6 @@ class Board:
 
 
 if __name__ == '__main__':
-    B = Board(1, 0, 0)
+    B = Board(sizeX=3, sizeY=3, mines=3, startX=0, startY=0)
     B.run()
     
