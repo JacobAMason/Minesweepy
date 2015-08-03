@@ -16,6 +16,7 @@ class Bot(irc.IRCClient):
             self.state_callback = self.welcome_instructions
             self.game = Game()
             self.bot = botInstance
+            self.respond("start")
 
         def msg(self, message):
             self.bot.msg(self.user, message)
@@ -38,45 +39,44 @@ class Bot(irc.IRCClient):
 
         def setup_board(self, size):
             if size == 1:
-                self.game.generate_board(5, 5, 8)
+                self.game.generate_board(5, 5, 5)
             elif size == 2:
-                self.game.generate_board(10, 6, 15)
+                self.game.generate_board(10, 5, 10)
             elif size == 3:
-                self.game.generate_board(15, 8, 25)
+                self.game.generate_board(15, 5, 15)
 
         def game_loop(self, message):
             self.game.process_input(message)
 
             errors = list(self.game.show_errors())
             if len(errors) > 0:
-                map(self.msg, self.game.show_errors())
+                map(self.msg, errors)
             else:
                 self.msg(self.game.show_board())
 
             if self.game.check_end_game_win() \
                     or self.game.check_end_game_loss():
-                del(self)
+                self.clients.pop(self.user)
 
         def respond(self, message):
             self.state_callback(message)
-
-        def __del__(self):
-            self.clients.pop(self.user)
 
     def privmsg(self, user, channel, message):
         user = user.split("!", 1)[0]
         if channel == self.nickname:
             self.command(user, message)
+        elif message == "help":
+            self.say(channel, "Send 'start' to me in a direct message.")
 
     def command(self, user, message):
         if message == "help":
             self.msg(user, "Say 'start' to start a game.")
         elif self.Client.clients.has_key(user):
-            self.Client.clients[user].respond()
+            self.Client.clients[user].respond(message)
         elif message == "start":
             self.Client(user, self)
         else:
-            self.msg(user, "That's totally not a command.")
+            self.msg(user, "*wat*\nSay 'help' to figure this thing out.")
 
     def signedOn(self):
         self.join(self.factory.channel)
@@ -86,9 +86,16 @@ class Bot(irc.IRCClient):
     def nickname(self):
         return self.factory.nickname
 
+    def userJoined(self, user, channel):
+        user = user.split("!", 1)[0]
+        self.msg(user, "Say 'start' to start a game.")
+
     def joined(self, channel):
         print "Joined %s." % (channel,)
-        self.say(channel, "Hello, %s!" % (channel))
+        self.say(channel, (
+                     "Hello, %s !\n"
+                     "Start a direct message with me to play." % (channel))
+                 )
 
     def dataReceived(self, bytes):
         print str(bytes).rstrip()
@@ -114,7 +121,7 @@ class BotFactory(protocol.ClientFactory):
 if __name__ == "__main__":
     host = "coop.test.adtran.com"
     port = 6667
-    chan = "test"
+    chan = "Minesweepy"
     reactor.connectTCP(host, port,
                        BotFactory("#" + chan, nickname="Minesweepy"))
     reactor.run()

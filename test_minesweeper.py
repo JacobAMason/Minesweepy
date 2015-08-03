@@ -225,6 +225,68 @@ class Board2x3Tests(unittest.TestCase):
 
         self.assertTrue(self.board.is_mine_triggered)
 
+    def test_mine_triggered_print(self):
+        self.board.grid[1][0].set_as_mine()
+        self.board.reveal(0, 1)
+
+        self.assertEqual(
+            str(self.board),
+            (
+                "  a b\n"
+                "a      a\n"
+                "b X    b\n"
+                "c      c\n"
+                "  a b\n"
+            )
+        )
+
+    def test_reveal_all_print(self):
+        self.board.place_mines(5, self.tile)
+        self.board.reveal_whole_board()
+
+        self.assertEqual(
+            str(self.board),
+            (
+                "  a b\n"
+                "a X X  a\n"
+                "b 5 X  b\n"
+                "c X X  c\n"
+                "  a b\n"
+            )
+        )
+
+    def test_loss_reveals_whole_board(self):
+        self.board.place_mines(5, self.tile)
+        self.board.reveal(0, 0)
+
+        self.assertEqual(
+            str(self.board),
+            (
+                "  a b\n"
+                "a X X  a\n"
+                "b 5 X  b\n"
+                "c X X  c\n"
+                "  a b\n"
+            )
+        )
+
+    def test_flagged_mine_shows_checkmark_after_end_game(self):
+        self.board.place_mines(5, self.tile)
+        self.board.toggle_flag(1, 0)
+        self.board.reveal(0, 0)
+
+        self.assertEqual(
+            str(self.board),
+            (
+                "  a b\n"
+                "a X /  a\n"
+                "b 5 X  b\n"
+                "c X X  c\n"
+                "  a b\n"
+            )
+        )
+
+
 
 class GameTests(unittest.TestCase):
     def setUp(self):

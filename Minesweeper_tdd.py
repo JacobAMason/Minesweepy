@@ -19,6 +19,12 @@ class Board:
             self.isFlagged = False
 
         def __repr__(self):
+            if not self.isHidden and self.isMine:
+                if self.isFlagged:
+                    return "/ "
+                else:
+                    return "X "
+
             if self.isFlagged:
                 return "▓▓"
             elif self.isHidden:
@@ -91,7 +97,7 @@ class Board:
                 if tile.nearbyMines == 0:
                     self.reveal_surrounding_tiles(tile)
             if tile.isMine:
-                self.is_mine_triggered = True
+                self.game_loss()
 
     def reveal_surrounding_tiles(self, centerTile):
         for tile in self.surrounding_tiles(centerTile):
@@ -112,6 +118,15 @@ class Board:
 
     def is_valid_coordinate(self, x, y):
         return x in range(self.width) and y in range(self.height)
+
+    def game_loss(self):
+        self.is_mine_triggered = True
+        self.reveal_whole_board()
+
+    def reveal_whole_board(self):
+        for row in self.grid:
+            for tile in row:
+                tile.reveal()
 
     def __repr__(self):
         rtnString = self.column_markers()
@@ -157,9 +172,9 @@ class Game:
 
     def show_board(self):
         return (
-            "Mines Left: " + str(
-                self.mines - self.board.number_of_flags) + "\n"
-                                                           "\n" +
+            "Mines Left: " +
+            str(self.mines - self.board.number_of_flags) + "\n"
+            "\n" +
             str(self.board) +
             "\n" +
             self.show_prompt())
