@@ -6,9 +6,78 @@ from Minesweeper_tdd import Game
 __author__ = 'JacobAMason'
 
 
-
-
 class Bot(irc.IRCClient):
+    class Client:
+        clients = {}
+
+        def __init__(self, user, botInstance):
+            self.user = user
+            self.clients[user] = self
+            self.state_callback = self.welcome_instructions
+            self.game = Game()
+            self.bot = botInstance
+
+        def msg(self, message):
+            self.bot.msg(self.user, message)
+
+        def error(self, message):
+            self.msg("I don't know what you mean by '%s'" % message)
+
+        def welcome_instructions(self, message):
+            self.msg(self.game.show_welcome_message())
+            self.state_callback = self.pick_board_size
+
+        def pick_board_size(self, message):
+            if len(message) == 1 and message[0].isdigit() and int(
+                    message[0]) in [1, 2, 3]:
+                self.setup_board(int(message[0]))
+                self.state_callback = self.game_loop
+                self.msg(self.game.show_board())
+            else:
+                self.error(message)
+
+        def setup_board(self, size):
+            if size == 1:
+                self.game.generate_board(5, 5, 8)
+            elif size == 2:
+                self.game.generate_board(10, 6, 15)
+            elif size == 3:
+                self.game.generate_board(15, 8, 25)
+
+        def game_loop(self, message):
+            self.game.process_input(message)
+
+            errors = list(self.game.show_errors())
+            if len(errors) > 0:
+                map(self.msg, self.game.show_errors())
+            else:
+                self.msg(self.game.show_board())
+
+            if self.game.check_end_game_win() \
+                    or self.game.check_end_game_loss():
+                del(self)
+
+        def respond(self, message):
+            self.state_callback(message)
+
+        def __del__(self):
+            self.clients.pop(self.user)
+
+    def privmsg(self, user, channel, message):
+        user = user.split("!", 1)[0]
+        if channel == self.nickname:
+            self.command(user, message)
+
+    def command(self, user, message):
+        if message == "help":
+            self.msg(user, "Say 'start' to start a game.")
+        elif self.Client.clients.has_key(user):
+            self.Client.clients[user].respond()
+        elif message == "start":
+            self.Client(user, self)
+        else:
+            self.msg(user, "That's totally not a command.")
+
     def signedOn(self):
         self.join(self.factory.channel)
         print "Signed on as %s." % (self.nickname,)
@@ -20,20 +89,6 @@ class Bot(irc.IRCClient):
     def joined(self, channel):
         print "Joined %s." % (channel,)
         self.say(channel, "Hello, %s!" % (channel))
-
-    def command(self, user, message):
-        if message == "help":
-            self.msg(user, "Say 'start' to start a game.")
-        elif message == "start":
-            self.game = Game(3, 3, 2)
-            self.msg(user, self.game.show_welcome_message())
-            self.msg(user, self.game.show_board())
-
-
-    def privmsg(self, user, channel, message):
-        user = user.split("!", 1)[0]
-        if channel == self.nickname:
-            self.command(user, message)
 
     def dataReceived(self, bytes):
         print str(bytes).rstrip()
@@ -55,9 +110,11 @@ class BotFactory(protocol.ClientFactory):
     def clientConnectionFailed(self, connector, reason):
         print "Could not connect: %s" % (reason)
 
+
 if __name__ == "__main__":
-    host = "irc.freenode.net"
+    host = "coop.test.adtran.com"
     port = 6667
-    chan = "msstate"
-    reactor.connectTCP(host, port, BotFactory("#" + chan, nickname="Minesweepy"))
+    chan = "test"
+    reactor.connectTCP(host, port,
+                       BotFactory("#" + chan, nickname="Minesweepy"))
     reactor.run()

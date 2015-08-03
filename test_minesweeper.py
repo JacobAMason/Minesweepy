@@ -62,7 +62,8 @@ class Board2x3Tests(unittest.TestCase):
                 "a ████ a\n"
                 "b ████ b\n"
                 "c ████ c\n"
-                "  a b\n")
+                "  a b\n"
+            )
         )
 
     def test_initialize_0_mines(self):
@@ -132,7 +133,8 @@ class Board2x3Tests(unittest.TestCase):
                 "a      a\n"
                 "b      b\n"
                 "c      c\n"
-                "  a b\n")
+                "  a b\n"
+            )
         )
 
     def test_cannot_recursively_reveal_tile_near_mine(self):
@@ -161,7 +163,8 @@ class Board2x3Tests(unittest.TestCase):
                 "a ████ a\n"
                 "b ██1  b\n"
                 "c ████ c\n"
-                "  a b\n")
+                "  a b\n"
+            )
         )
 
     def test_flag_tile(self):
@@ -186,7 +189,8 @@ class Board2x3Tests(unittest.TestCase):
                 "a ████ a\n"
                 "b ▓▓██ b\n"
                 "c ████ c\n"
-                "  a b\n")
+                "  a b\n"
+            )
         )
 
     def test_cannot_reveal_flagged_tile(self):
@@ -224,11 +228,17 @@ class Board2x3Tests(unittest.TestCase):
 
 class GameTests(unittest.TestCase):
     def setUp(self):
-        self.game = Game(2, 3, mines=1)
+        self.game = Game()
+        self.game.generate_board(2, 3, mines=1)
 
     def test_show_welcome_message(self):
         self.assertEqual(
-            self.game.show_welcome_message(), "Welcome to Minesweeper!"
+            self.game.show_welcome_message(),
+            (
+                "Welcome to Minesweeper!\n"
+                "What size minefield do you wish to play on?\n"
+                "Say 1 for small, 2 for medium, and 3 for large.\n"
+            )
         )
 
     def test_create_empty_board(self):
@@ -247,19 +257,20 @@ class GameTests(unittest.TestCase):
                 "  a b\n"
                 "\n"
                 "Enter an 'f' to enter flag mode\n"
-                "Enter a coordinate to reveal a tile\n")
+                "Enter a coordinate to reveal a tile\n"
+            )
         )
 
-    def test_reveal_tile_on_empty_board(self):
+    def test_reveal_tile(self):
         self.game.process_input("a b")
         visibilityGrid = [[tile.isHidden for tile in row] for row in
                           self.game.board.grid]
 
         self.assertEqual(
             visibilityGrid,
-            [[False, False],
-             [False, False],
-             [False, False]]
+            [[True, True],
+             [False, True],
+             [True, True]]
         )
 
     def test_toggle_flag_mode(self):
@@ -268,7 +279,8 @@ class GameTests(unittest.TestCase):
             self.game.show_prompt(),
             (
                 "Enter an 'f' to exit flag mode\n"
-                "Enter a coordinate to toggle the flag\n")
+                "Enter a coordinate to toggle the flag\n"
+            )
         )
 
     def test_toggle_flag(self):
@@ -296,6 +308,14 @@ class GameTests(unittest.TestCase):
             "This isn't valid input. Try something like \"a a\""
         )
 
+    def test_error_queue_gets_popped(self):
+        self.game.process_input("FOO BAR")
+        list(self.game.show_errors())
+
+        self.assertEqual(
+            len(list(self.game.show_errors())), 0
+        )
+
     def test_start_game(self):
         self.game.start_game(0, 1)
         visibilityGrid = [[tile.isHidden for tile in row] for row in
@@ -308,12 +328,63 @@ class GameTests(unittest.TestCase):
              [True, True]]
         )
 
-    def test_check_end_game(self):
-        self.game.board = Board(2, 3)
-        self.game.board.place_mines(5, self.game.board.grid[1][0])
-        self.game.board.reveal(0, 0)
+    def test_start_game_reveal_callback_changes(self):
+        self.assertEqual(self.game.reveal_callback, self.game.start_game)
+        self.game.process_input("a a")
+        self.assertEqual(self.game.reveal_callback, self.game.board.reveal)
 
-        self.assertTrue(self.game.check_end_game())
+    def test_check_end_game_none(self):
+        self.game.generate_board(2, 3, 5)
+        self.game.reveal(0, 0)
+
+        self.assertFalse(self.game.check_end_game_loss())
+        self.assertFalse(self.game.check_end_game_win())
+
+    def test_check_end_game_loss(self):
+        self.lose_a_game()
+
+        self.assertTrue(self.game.check_end_game_loss())
+        self.assertFalse(self.game.check_end_game_win())
+
+    def test_check_end_game_win(self):
+        self.win_a_game()
+
+        self.assertFalse(self.game.check_end_game_loss())
+        self.assertTrue(self.game.check_end_game_win())
+
+    def test_end_game_win_prompt(self):
+        self.win_a_game()
+
+        self.assertEqual(
+            self.game.show_prompt(),
+            (
+                "Congrats, you've won!"
+            )
+        )
+
+    def test_end_game_lose_prompt(self):
+        self.lose_a_game()
+
+        self.assertEqual(
+            self.game.show_prompt(),
+            (
+                "Ouch."
+            )
+        )
+
+    def lose_a_game(self):
+        self.game.generate_board(2, 3, 5)
+        self.game.reveal(0, 0)
+        self.game.reveal(0, 1)
+
+    def win_a_game(self):
+        self.game.generate_board(2, 3, 5)
+        self.game.reveal(0, 0)
+        self.game.board.toggle_flag(0, 1)
+        self.game.board.toggle_flag(0, 2)
+        self.game.board.toggle_flag(1, 0)
+        self.game.board.toggle_flag(1, 1)
+        self.game.board.toggle_flag(1, 2)
 
 
 if __name__ == '__main__':
