@@ -41,7 +41,7 @@ class TileTests(unittest.TestCase):
 class Board2x3Tests(unittest.TestCase):
     def setUp(self):
         self.board = Board(width=2, height=3)
-        self.tile = self.board.grid[1][0]
+        self.tile = self.board.grid[0][0]
 
     def test_initialize_blank_board(self):
         visibilityGrid = [[tile.isHidden for tile in row] for row in
@@ -92,8 +92,8 @@ class Board2x3Tests(unittest.TestCase):
 
         self.assertEqual(
             mineGrid,
-            [[True, True],
-             [False, True],
+            [[False, True],
+             [True, True],
              [True, True]]
         )
 
@@ -106,38 +106,61 @@ class Board2x3Tests(unittest.TestCase):
 
         self.assertEqual(
             numberGrid,
-            [[1, 1],
-             [0, 1],
-             [1, 1]]
+            [[0, 1],
+             [1, 1],
+             [0, 0]]
         )
 
     def test_reveal(self):
-        self.board.reveal(0, 1)
+        self.tile.set_as_mine()
+        self.board.increment_tiles_around_mine(self.tile)
+        self.board.reveal(0, 2)
         visibilityGrid = [[tile.isHidden for tile in row] for row in
                           self.board.grid]
 
         self.assertEqual(
             visibilityGrid,
-            [[False, False],
+            [[True, True],
              [False, False],
              [False, False]]
         )
 
     def test_reveal_print(self):
-        self.board.reveal(0, 1)
+        self.tile.set_as_mine()
+        self.board.increment_tiles_around_mine(self.tile)
+        self.board.reveal(0, 2)
 
         self.assertEqual(
             str(self.board),
             (
                 "  a b\n"
-                "a      a\n"
-                "b      b\n"
+                "a ████ a\n"
+                "b 1 1  b\n"
                 "c      c\n"
                 "  a b\n"
             )
         )
 
-    def test_cannot_recursively_reveal_tile_near_mine(self):
+    def test_can_recursively_reveal_if_flags_set(self):
+        self.tile.set_as_mine()
+        extraMinePreventsGameWin = self.board.convert_coordinate_to_tile(0, 2)
+        extraMinePreventsGameWin.set_as_mine()
+        self.board.increment_tiles_around_mine(self.tile)
+        self.board.increment_tiles_around_mine(extraMinePreventsGameWin)
+        self.board.toggle_flag(self.tile.position[0], self.tile.position[1])
+        self.board.reveal(1, 0)
+        self.board.reveal(1, 0)
+        visibilityGrid = [[tile.isHidden for tile in row] for row in
+                          self.board.grid]
+
+        self.assertEqual(
+            visibilityGrid,
+            [[True, False],
+             [False, False],
+             [True, True]]
+        )
+
+    def test_cannot_recursively_reveal_tiles_near_mine(self):
         self.tile.set_as_mine()
         self.board.increment_tiles_around_mine(self.tile)
         self.board.reveal(1, 1)
@@ -219,6 +242,20 @@ class Board2x3Tests(unittest.TestCase):
              [False, False]]
         )
 
+    def test_cannot_flag_revealed_tile(self):
+        self.board.reveal(0, 0)
+        self.board.toggle_flag(0, 0)
+
+        flaggedGrid = [[tile.isFlagged for tile in row] for row in
+                       self.board.grid]
+
+        self.assertEqual(
+            flaggedGrid,
+            [[False, False],
+             [False, False],
+             [False, False]]
+        )
+
     def test_mine_triggered(self):
         self.board.grid[1][0].set_as_mine()
         self.board.reveal(0, 1)
@@ -248,8 +285,8 @@ class Board2x3Tests(unittest.TestCase):
             str(self.board),
             (
                 "  a b\n"
-                "a X X  a\n"
-                "b 5 X  b\n"
+                "a 3 X  a\n"
+                "b X X  b\n"
                 "c X X  c\n"
                 "  a b\n"
             )
@@ -257,31 +294,51 @@ class Board2x3Tests(unittest.TestCase):
 
     def test_loss_reveals_whole_board(self):
         self.board.place_mines(5, self.tile)
-        self.board.reveal(0, 0)
+        self.board.reveal(0, 1)
 
         self.assertEqual(
             str(self.board),
             (
                 "  a b\n"
-                "a X X  a\n"
-                "b 5 X  b\n"
+                "a 3 X  a\n"
+                "b X X  b\n"
                 "c X X  c\n"
                 "  a b\n"
             )
         )
 
-    def test_flagged_mine_shows_checkmark_after_end_game(self):
+    def test_flagged_mine_shows_checkmark_after_end_game_loss(self):
         self.board.place_mines(5, self.tile)
         self.board.toggle_flag(1, 0)
+        self.board.reveal(0, 1)
+
+        self.assertEqual(
+            str(self.board),
+            (
+                "  a b\n"
+                "a 3 /  a\n"
+                "b X X  b\n"
+                "c X X  c\n"
+                "  a b\n"
+            )
+        )
+
+    def test_flagged_mine_shows_checkmark_after_end_game_win(self):
+        self.board.place_mines(5, self.tile)
+        self.board.toggle_flag(0, 1)
+        self.board.toggle_flag(0, 2)
+        self.board.toggle_flag(1, 0)
+        self.board.toggle_flag(1, 1)
+        self.board.toggle_flag(1, 2)
         self.board.reveal(0, 0)
 
         self.assertEqual(
             str(self.board),
             (
                 "  a b\n"
-                "a X /  a\n"
-                "b 5 X  b\n"
-                "c X X  c\n"
+                "a 3 /  a\n"
+                "b / /  b\n"
+                "c / /  c\n"
                 "  a b\n"
             )
         )
@@ -322,6 +379,11 @@ class GameTests(unittest.TestCase):
                 "Enter a coordinate to reveal a tile\n"
             )
         )
+
+    def test_show_command_does_not_throw_error_and_therefore_shows_board(self):
+        self.game.process_input("show")
+
+        self.assertEqual(len(self.game.errorQueue), 0)
 
     def test_reveal_tile(self):
         self.game.process_input("a b")
@@ -399,20 +461,20 @@ class GameTests(unittest.TestCase):
         self.game.generate_board(2, 3, 5)
         self.game.reveal(0, 0)
 
-        self.assertFalse(self.game.check_end_game_loss())
-        self.assertFalse(self.game.check_end_game_win())
+        self.assertFalse(self.game.board.check_end_game_loss())
+        self.assertFalse(self.game.board.check_end_game_win())
 
     def test_check_end_game_loss(self):
         self.lose_a_game()
 
-        self.assertTrue(self.game.check_end_game_loss())
-        self.assertFalse(self.game.check_end_game_win())
+        self.assertTrue(self.game.board.check_end_game_loss())
+        self.assertFalse(self.game.board.check_end_game_win())
 
     def test_check_end_game_win(self):
         self.win_a_game()
 
-        self.assertFalse(self.game.check_end_game_loss())
-        self.assertTrue(self.game.check_end_game_win())
+        self.assertFalse(self.game.board.check_end_game_loss())
+        self.assertTrue(self.game.board.check_end_game_win())
 
     def test_end_game_win_prompt(self):
         self.win_a_game()

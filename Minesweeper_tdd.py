@@ -84,25 +84,39 @@ class Board:
 
     def toggle_flag(self, x, y):
         if self.is_valid_coordinate(x, y):
-            if (self.convert_coordinate_to_tile(x, y).toggle_flag()):
-                self.number_of_flags += 1
-            else:
-                self.number_of_flags -= 1
+            tile = self.convert_coordinate_to_tile(x, y)
+            if tile.isHidden:
+                if tile.toggle_flag():
+                    self.number_of_flags += 1
+                else:
+                    self.number_of_flags -= 1
 
     def reveal(self, x, y):
         if self.is_valid_coordinate(x, y):
             tile = self.convert_coordinate_to_tile(x, y)
-            if not tile.isFlagged:
-                tile.reveal()
-                if tile.nearbyMines == 0:
-                    self.reveal_surrounding_tiles(tile)
-            if tile.isMine:
-                self.game_loss()
+            if not tile.isHidden and tile.nearbyMines > 0:
+                flags = 0
+                for surroundingTile in self.surrounding_tiles(tile):
+                    if surroundingTile.isFlagged:
+                        flags += 1
+                if flags == tile.nearbyMines:
+                    map(self.reveal_recursive, self.surrounding_tiles(tile))
+                    self.reveal_recursive(tile)
+            else:
+                self.reveal_recursive(tile)
+        self.check_end_game_win()
 
-    def reveal_surrounding_tiles(self, centerTile):
-        for tile in self.surrounding_tiles(centerTile):
-            if tile.isHidden and not tile.isFlagged:
-                tile.reveal()
+    def reveal_recursive(self, centerTile):
+        if not centerTile.isFlagged:
+            centerTile.reveal()
+            if centerTile.isMine:
+                self.is_mine_triggered = True
+                self.reveal_whole_board()
+            if centerTile.nearbyMines == 0:
+                for tile in self.surrounding_tiles(centerTile):
+                    if tile.isHidden and not tile.isFlagged:
+                        self.reveal_recursive(tile)
+
 
     def surrounding_tiles(self, tile):
         x, y = tile.position
@@ -119,9 +133,17 @@ class Board:
     def is_valid_coordinate(self, x, y):
         return x in range(self.width) and y in range(self.height)
 
-    def game_loss(self):
-        self.is_mine_triggered = True
+    def check_end_game_loss(self):
+        return self.is_mine_triggered
+
+    def check_end_game_win(self):
+        for row in self.grid:
+            for tile in row:
+                if (tile.isHidden and not tile.isMine) \
+                        or (tile.isMine and not tile.isFlagged):
+                    return False
         self.reveal_whole_board()
+        return True
 
     def reveal_whole_board(self):
         for row in self.grid:
@@ -187,9 +209,9 @@ class Game:
         self.isInFlagMode = not self.isInFlagMode
 
     def show_prompt(self):
-        if self.check_end_game_loss():
+        if self.board.check_end_game_loss():
             return "Ouch."
-        elif self.check_end_game_win():
+        elif self.board.check_end_game_win():
             return "Congrats, you've won!"
         elif self.isInFlagMode:
             return (
@@ -210,6 +232,8 @@ class Game:
                 self.reveal(x, y)
         elif len(userInput) == 1 and userInput[0].lower() == 'f':
             self.toggle_flag_mode()
+        elif userInput == "show":
+            pass
         else:
             self.errorQueue.append(
                 "This isn't valid input. Try something like \"a a\"")
@@ -231,15 +255,3 @@ class Game:
         self.board.place_mines(self.mines, tile)
         self.board.reveal(x, y)
         self.reveal_callback = self.board.reveal
-
-    def check_end_game_loss(self):
-        return self.board.is_mine_triggered
-
-    def check_end_game_win(self):
-        for row in self.board.grid:
-            for tile in row:
-                if (tile.isHidden and not tile.isMine) \
-                        or (tile.isMine and not tile.isFlagged):
-                    return False
-
-        return True

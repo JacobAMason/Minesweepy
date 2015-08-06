@@ -39,11 +39,11 @@ class Bot(irc.IRCClient):
 
         def setup_board(self, size):
             if size == 1:
-                self.game.generate_board(5, 5, 5)
+                self.game.generate_board(5, 5, 3)
             elif size == 2:
-                self.game.generate_board(10, 5, 10)
+                self.game.generate_board(10, 5, 6)
             elif size == 3:
-                self.game.generate_board(15, 5, 15)
+                self.game.generate_board(15, 5, 9)
 
         def game_loop(self, message):
             self.game.process_input(message)
@@ -54,8 +54,8 @@ class Bot(irc.IRCClient):
             else:
                 self.msg(self.game.show_board())
 
-            if self.game.check_end_game_win() \
-                    or self.game.check_end_game_loss():
+            if self.game.board.check_end_game_win() \
+                    or self.game.board.check_end_game_loss():
                 self.clients.pop(self.user)
 
         def respond(self, message):
@@ -119,7 +119,7 @@ class BotFactory(protocol.ClientFactory):
 
 
 if __name__ == "__main__":
-    host = "coop.test.adtran.com"
+    host = "irc.freenode.net"
     port = 6667
     chan = "Minesweepy"
     reactor.connectTCP(host, port,
