@@ -1,14 +1,10 @@
 # coding=utf-8
 import random
 
-__author__ = 'JacobAMason'
-
 
 class Board:
-    alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l",
-                "m",
-                "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y",
-                "z"]
+    alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u",
+                "v", "w", "x", "y", "z"]
 
     class Tile:
         def __init__(self, x, y):
@@ -117,7 +113,6 @@ class Board:
                     if tile.isHidden and not tile.isFlagged:
                         self.reveal_recursive(tile)
 
-
     def surrounding_tiles(self, tile):
         x, y = tile.position
         surroundingPositions = [(x - 1, y - 1), (x, y - 1), (x + 1, y - 1),
@@ -196,7 +191,7 @@ class Game:
         return (
             "Mines Left: " +
             str(self.mines - self.board.number_of_flags) + "\n"
-            "\n" +
+                                                           "\n" +
             str(self.board) +
             "\n" +
             self.show_prompt())
@@ -255,3 +250,20 @@ class Game:
         self.board.place_mines(self.mines, tile)
         self.board.reveal(x, y)
         self.reveal_callback = self.board.reveal
+
+
+if __name__ == '__main__':
+    game = Game()
+    print game.show_welcome_message()
+    size = int(input())
+    if size == 1:
+        game.generate_board(5, 5, 3)
+    elif size == 2:
+        game.generate_board(10, 5, 6)
+    elif size == 3:
+        game.generate_board(15, 5, 9)
+
+    while not game.board.check_end_game_win() and not game.board.check_end_game_loss():
+        print game.show_board()
+        game.process_input(raw_input())
+    print game.show_board()

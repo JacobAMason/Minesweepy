@@ -3,7 +3,6 @@ from twisted.words.protocols import irc
 from twisted.internet import reactor, protocol
 from Minesweeper_tdd import Game
 
-__author__ = 'JacobAMason'
 
 class GameStateMachine:
     clients = {}
@@ -51,15 +50,14 @@ class GameStateMachine:
         else:
             self.msg(self.game.show_board())
 
-        if self.game.board.check_end_game_win() \
-                or self.game.board.check_end_game_loss():
+        if self.game.board.check_end_game_win() or self.game.board.check_end_game_loss():
             self.clients.pop(self.user)
 
     def respond(self, message):
         self.state_callback(message)
 
-class Bot(irc.IRCClient):
 
+class Bot(irc.IRCClient):
     class IRCStateMachine(GameStateMachine):
         def __init__(self, user, botInstance):
             self.bot = botInstance
@@ -100,8 +98,8 @@ class Bot(irc.IRCClient):
     def joined(self, channel):
         print "Joined %s." % (channel,)
         self.say(channel, (
-                     "Hello, %s !\n"
-                     "Start a direct message with me to play." % (channel))
+            "Hello, %s !\n"
+            "Start a direct message with me to play." % (channel))
                  )
 
     def dataReceived(self, bytes):

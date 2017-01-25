@@ -1,34 +1,9 @@
 #!python3
-
-__author__ = "JacobAMason"
-
-"""
-Copyright (c) 2014 Jacob Mason
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-"""
-
 import random
 import os
 
-class Board:
 
+class Board:
     from enum import IntEnum, unique
 
     # Used to handle tile states
@@ -40,7 +15,8 @@ class Board:
         mine = -1
         blank = 0
 
-    _alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
+    _alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
+                 "u", "v", "w", "x", "y", "z"]
 
     def __init__(self, sizeX, sizeY, mines, startX, startY, randSeed=None):
         # translate input size into board sizes. (Obviously, you can change this and create custom board sizes.)
@@ -50,7 +26,7 @@ class Board:
         else:
             raise ValueError("Invalid board size. Must be between 1 and 26")
 
-        if mines > 0 and mines < (self.sizeX * self.sizeY)/2:
+        if mines > 0 and mines < (self.sizeX * self.sizeY) / 2:
             self.mines = int(mines)
         else:
             raise ValueError("Invalid number of mines.")
@@ -71,15 +47,15 @@ class Board:
 
         # calculate mine posotions
         for i in range(self.mines):
-            xmine = random.randint(0, self.sizeX -1)
-            ymine = random.randint(0, self.sizeY -1)
+            xmine = random.randint(0, self.sizeX - 1)
+            ymine = random.randint(0, self.sizeY - 1)
             while (xmine, ymine) in self.minePositions or (xmine, ymine) == (startX, startY):
-                xmine = random.randint(0, self.sizeX -1)
-                ymine = random.randint(0, self.sizeY -1)
+                xmine = random.randint(0, self.sizeX - 1)
+                ymine = random.randint(0, self.sizeY - 1)
             self.grid[ymine][xmine] = 9
             self.minePositions.append((xmine, ymine))
             for x, y in self._getSurroundingCoordList(xmine, ymine):
-                    self.grid[y][x] += 1
+                self.grid[y][x] += 1
 
         # place mines on the board.
         for x, y in self.minePositions:
@@ -94,7 +70,8 @@ class Board:
             rtnString += Board._alphabet[j] + " "
             for i, e in enumerate(row):
                 if e is Board._tile.revealed:
-                    rtnString += (" " if self.grid[j][i] is Board._tile.blank else ("*" if self.grid[j][i] is Board._tile.mine else str(self.grid[j][i]))) + " "
+                    rtnString += (" " if self.grid[j][i] is Board._tile.blank else (
+                    "*" if self.grid[j][i] is Board._tile.mine else str(self.grid[j][i]))) + " "
                 elif e is Board._tile.flagged:
                     rtnString += "▓▓"
                 else:
@@ -103,14 +80,15 @@ class Board:
         rtnString += "  " + " ".join(Board._alphabet[:self.sizeX]) + "\n"
         return rtnString
 
-    # Generaor which yields the coordinates of any surrounding cells
+    # Generator which yields the coordinates of any surrounding cells
     def _getSurroundingCoordList(self, x, y):
-        surroundingPositions = [(x-1, y-1), (x, y-1), (x+1, y-1), (x-1, y), (x+1, y), (x-1, y+1), (x, y+1), (x+1, y+1)]
+        surroundingPositions = [(x - 1, y - 1), (x, y - 1), (x + 1, y - 1), (x - 1, y), (x + 1, y), (x - 1, y + 1),
+                                (x, y + 1), (x + 1, y + 1)]
         for x, y in surroundingPositions:
             if x in range(self.sizeX) and y in range(self.sizeY):
-                    yield x, y
+                yield x, y
 
-    # Converts alphbetical entries into numeric coordinates.
+    # Converts alphabetical entries into numeric coordinates.
     def _alphaToCoords(self, a, b):
         if a not in Board._alphabet or b not in Board._alphabet:
             print("These aren't letters. Try something like \"a a\"")
@@ -142,7 +120,7 @@ class Board:
     def reveal(self, a, b):
         x, y = self._alphaToCoords(a, b)
 
-        if (x, y) == (-1,-1):
+        if (x, y) == (-1, -1):
             return True
 
         if self.visibility[y][x] is Board._tile.flagged:
@@ -154,15 +132,17 @@ class Board:
                 if self.visibility[j][i] is Board._tile.flagged:
                     flags += 1
             if flags == self.grid[y][x]:
-                return all([self._reveal(i, j) if self.visibility[j][i] is Board._tile.hidden else True for i, j in self._getSurroundingCoordList(x, y)])
+                return all([self._reveal(i, j) if self.visibility[j][i] is Board._tile.hidden else True for i, j in
+                            self._getSurroundingCoordList(x, y)])
 
-        return self._reveal(x, y)            
+        return self._reveal(x, y)
 
-    # Add or remove a flag
+        # Add or remove a flag
+
     def toggleFlag(self, a, b):
         x, y = self._alphaToCoords(a, b)
 
-        if (x, y) == (-1,-1):
+        if (x, y) == (-1, -1):
             return
 
         if self.visibility[y][x] is Board._tile.flagged:
@@ -179,7 +159,7 @@ class Board:
         for row in self.visibility:
             if Board._tile.hidden in row:
                 return True
-        
+
         return (self.mines != self.flags)
 
     # The running loop thar prompts users for input.
@@ -199,14 +179,15 @@ class Board:
                 else:
                     prompt = ""
                 continue
-            elif len(readIn) == 3 and readIn[0] in Board._alphabet and readIn[2] in Board._alphabet and readIn[1] == " ":
+            elif len(readIn) == 3 and readIn[0] in Board._alphabet and readIn[2] in Board._alphabet and readIn[
+                1] == " ":
                 if prompt == "":
                     if not self.reveal(readIn[0], readIn[2]):
                         break
                 else:
                     self.toggleFlag(readIn[0], readIn[2])
 
-        # handle en-game
+        # handle end-game
         if not self._checkEndGame():
             print("Mines Left:", self.mines - self.flags)
             print()
@@ -229,4 +210,3 @@ class Board:
 if __name__ == '__main__':
     B = Board(sizeX=3, sizeY=3, mines=3, startX=0, startY=0)
     B.run()
-    
