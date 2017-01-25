@@ -4,7 +4,7 @@ import random
 
 class Board:
     alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u",
-                "v", "w", "x", "y", "z"]
+                "v", "w", "x", "y", "z", "aa", "bb", "cc", "dd"]
 
     class Tile:
         def __init__(self, x, y):
@@ -218,20 +218,23 @@ class Game:
                 "Enter a coordinate to reveal a tile\n")
 
     def process_input(self, userInput):
-        if len(userInput) == 3 and userInput[0].isalpha() and \
-                userInput[2].isalpha() and userInput[1] == " ":
-            x, y = self.alpha_to_coordinates(userInput[0], userInput[2])
-            if self.isInFlagMode:
-                self.board.toggle_flag(x, y)
-            else:
-                self.reveal(x, y)
-        elif len(userInput) == 1 and userInput[0].lower() == 'f':
-            self.toggle_flag_mode()
-        elif userInput == "show":
-            pass
-        else:
-            self.errorQueue.append(
-                "This isn't valid input. Try something like \"a a\"")
+        try:
+            xAlpha, yAlpha = userInput.split()
+            if xAlpha.lower() in self.board.alphabet and yAlpha in self.board.alphabet:
+                x, y = self.alpha_to_coordinates(xAlpha, yAlpha)
+                if self.isInFlagMode:
+                    self.board.toggle_flag(x, y)
+                else:
+                    self.reveal(x, y)
+                return
+        except ValueError:
+            if len(userInput) == 1 and userInput[0].lower() == 'f':
+                self.toggle_flag_mode()
+                return
+            elif userInput == "show":
+                return
+        self.errorQueue.append(
+            "This isn't valid input. Try something like \"a a\"")
 
     def reveal(self, x, y):
         self.reveal_callback(x, y)
@@ -261,7 +264,7 @@ if __name__ == '__main__':
     elif size == 2:
         game.generate_board(10, 5, 6)
     elif size == 3:
-        game.generate_board(15, 5, 9)
+        game.generate_board(30, 16, 99)
 
     while not game.board.check_end_game_win() and not game.board.check_end_game_loss():
         print game.show_board()
