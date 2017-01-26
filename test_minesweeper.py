@@ -375,8 +375,6 @@ class GameTests(unittest.TestCase):
                 "c ████ c\n"
                 "  a b\n"
                 "\n"
-                "Enter an 'f' to enter flag mode\n"
-                "Enter a coordinate to reveal a tile\n"
             )
         )
 
@@ -396,6 +394,16 @@ class GameTests(unittest.TestCase):
              [False, True],
              [True, True]]
         )
+
+    def test_reveal_returns_one_tile_revealed(self):
+        self.game.generate_board(2, 3, 5)
+        tile = self.game.reveal(0, 0)
+        self.assertEqual(tile, [self.game.board.grid[0][0]])
+
+    def test_reveal_returns_all_tiles_revealed(self):
+        self.game.generate_board(2, 3, 0)
+        tiles = self.game.reveal(0, 0)
+        self.assertItemsEqual(tiles, [tile for row in self.game.board.grid for tile in row])
 
     def test_toggle_flag_mode(self):
         self.game.toggle_flag_mode()

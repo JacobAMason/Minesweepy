@@ -1,5 +1,6 @@
 # coding=utf-8
 import random
+from itertools import chain
 
 
 class Board:
@@ -15,6 +16,9 @@ class Board:
             self.isFlagged = False
 
         def __repr__(self):
+            return str(self.nearbyMines)
+
+        def __str__(self):
             if not self.isHidden and self.isMine:
                 if self.isFlagged:
                     return "/ "
@@ -88,30 +92,33 @@ class Board:
                     self.number_of_flags -= 1
 
     def reveal(self, x, y):
+        tilesRevealed = []
         if self.is_valid_coordinate(x, y):
             tile = self.convert_coordinate_to_tile(x, y)
             if not tile.isHidden and tile.nearbyMines > 0:
-                flags = 0
-                for surroundingTile in self.surrounding_tiles(tile):
-                    if surroundingTile.isFlagged:
-                        flags += 1
-                if flags == tile.nearbyMines:
-                    map(self.reveal_recursive, self.surrounding_tiles(tile))
-                    self.reveal_recursive(tile)
+                numFlags = sum(map(lambda s: s.isFlagged, self.surrounding_tiles(tile)))
+                if numFlags == tile.nearbyMines:
+                    tilesRevealed = list(chain.from_iterable(
+                        map(self.reveal_recursive, self.surrounding_tiles(tile)))) + self.reveal_recursive(tile)
             else:
-                self.reveal_recursive(tile)
+                tilesRevealed = self.reveal_recursive(tile)
         self.check_end_game_win()
+        return tilesRevealed
 
     def reveal_recursive(self, centerTile):
         if not centerTile.isFlagged:
             centerTile.reveal()
+            tilesRevealed = [centerTile]
             if centerTile.isMine:
                 self.is_mine_triggered = True
                 self.reveal_whole_board()
             if centerTile.nearbyMines == 0:
                 for tile in self.surrounding_tiles(centerTile):
                     if tile.isHidden and not tile.isFlagged:
-                        self.reveal_recursive(tile)
+                        tilesRevealed.extend(self.reveal_recursive(tile))
+            return tilesRevealed
+        else:
+            return []
 
     def surrounding_tiles(self, tile):
         x, y = tile.position
@@ -193,8 +200,7 @@ class Game:
             str(self.mines - self.board.number_of_flags) + "\n"
                                                            "\n" +
             str(self.board) +
-            "\n" +
-            self.show_prompt())
+            "\n")
 
     def generate_board(self, width, height, mines):
         self.board = Board(width, height)
@@ -237,7 +243,7 @@ class Game:
             "This isn't valid input. Try something like \"a a\"")
 
     def reveal(self, x, y):
-        self.reveal_callback(x, y)
+        return self.reveal_callback(x, y)
 
     def alpha_to_coordinates(self, a, b):
         x = self.board.alphabet.index(a.lower())
@@ -251,8 +257,9 @@ class Game:
     def start_game(self, x, y):
         tile = self.board.convert_coordinate_to_tile(x, y)
         self.board.place_mines(self.mines, tile)
-        self.board.reveal(x, y)
+        revealed = self.board.reveal(x, y)
         self.reveal_callback = self.board.reveal
+        return revealed
 
 
 if __name__ == '__main__':
@@ -268,5 +275,5 @@ if __name__ == '__main__':
 
     while not game.board.check_end_game_win() and not game.board.check_end_game_loss():
         print game.show_board()
-        game.process_input(raw_input())
+        game.process_input(raw_input(game.show_prompt()))
     print game.show_board()
