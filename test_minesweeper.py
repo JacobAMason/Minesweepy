@@ -210,7 +210,7 @@ class Board2x3Tests(unittest.TestCase):
             (
                 "  a b\n"
                 "a ████ a\n"
-                "b ▓▓██ b\n"
+                "b ⚑ ██ b\n"
                 "c ████ c\n"
                 "  a b\n"
             )
@@ -316,7 +316,7 @@ class Board2x3Tests(unittest.TestCase):
             str(self.board),
             (
                 "  a b\n"
-                "a 3 /  a\n"
+                "a 3 ⚐  a\n"
                 "b X X  b\n"
                 "c X X  c\n"
                 "  a b\n"
@@ -336,9 +336,9 @@ class Board2x3Tests(unittest.TestCase):
             str(self.board),
             (
                 "  a b\n"
-                "a 3 /  a\n"
-                "b / /  b\n"
-                "c / /  c\n"
+                "a 3 ⚐  a\n"
+                "b ⚐ ⚐  b\n"
+                "c ⚐ ⚐  c\n"
                 "  a b\n"
             )
         )

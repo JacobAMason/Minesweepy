@@ -15,18 +15,26 @@ class Board:
             self.isHidden = True
             self.isFlagged = False
 
+        def copy(self):
+            new = Board.Tile(*self.position)
+            new.nearbyMines = self.nearbyMines
+            new.isMine = self.isMine
+            new.isHidden = self.isHidden
+            new.isFlagged = self.isFlagged
+            return new
+
         def __repr__(self):
             return str(self.nearbyMines)
 
         def __str__(self):
             if not self.isHidden and self.isMine:
                 if self.isFlagged:
-                    return "/ "
+                    return "⚐ "
                 else:
                     return "X "
 
             if self.isFlagged:
-                return "▓▓"
+                return "⚑ "
             elif self.isHidden:
                 return "██"
             elif self.nearbyMines == 0:
@@ -59,6 +67,19 @@ class Board:
         self.grid = [
             [Board.Tile(x, y) for x in range(self.width)] for y in
             range(self.height)]
+
+    def copy(self):
+        new = Board(self.width, self.height)
+        new.is_mine_triggered = self.is_mine_triggered
+        new.number_of_flags = self.number_of_flags
+        new.minePositions = self.minePositions[:]
+        new.grid = []
+        for row in self.grid:
+            newRow = []
+            for tile in row:
+                newRow.append(tile.copy())
+            new.grid.append(newRow)
+        return new
 
     def place_mines(self, numberOfMinesToPlace, tileToAvoid):
         for i in range(numberOfMinesToPlace):
