@@ -252,8 +252,7 @@ class Game:
                 if self.isInFlagMode:
                     self.board.toggle_flag(x, y)
                 else:
-                    self.reveal(x, y)
-                return
+                    return self.reveal(x, y)
         except ValueError:
             if len(userInput) == 1 and userInput[0].lower() == 'f':
                 self.toggle_flag_mode()

@@ -27,8 +27,9 @@ class BacktrackingAI(object):
             revealedTiles = self.backtracking_algorithm()
             if not revealedTiles:
                 # If we end up here, there was no tile that is consistent across all solutions
-                raw_input("The AI has to guess.")
-        self.update_local_board(revealedTiles)
+                revealedTiles = self.game.process_input(raw_input(game.show_prompt() + "\nThe AI has to guess\n"))
+        if revealedTiles is not None:
+            self.update_local_board(revealedTiles)
 
     def flag_obvious_mines(self):
         print "Flagging obvious mines"
@@ -141,8 +142,8 @@ class BacktrackingAI(object):
         # If we've recursed the same number of times as their are tiles,
         # we've found a solution.
         if depth == len(segment):
-            if board.number_of_flags < self.game.mines:  #TODO: and not borderOptimizaton
-                return
+            # if board.number_of_flags < self.game.mines:  #TODO: and not borderOptimizaton
+            #     return
             print "Found solution"
             print board
             solutions.append(board)
