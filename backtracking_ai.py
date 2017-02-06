@@ -1,4 +1,5 @@
 import time
+
 from Minesweeper_tdd import Game, Board
 
 
@@ -27,7 +28,9 @@ class BacktrackingAI(object):
             revealedTiles = self.backtracking_algorithm()
             if not revealedTiles:
                 # If we end up here, there was no tile that is consistent across all solutions
-                revealedTiles = self.game.process_input(raw_input(game.show_prompt() + "\nThe AI has to guess\n"))
+                print self.game.show_board()
+                revealedTiles = self.game.process_input(raw_input(
+                    game.show_prompt() + "\nThe AI has to guess\n"))
         if revealedTiles is not None:
             self.update_local_board(revealedTiles)
 
@@ -72,34 +75,38 @@ class BacktrackingAI(object):
         raw_input()
         startTime = time.time()
 
-        borderTilePositions = []
-        allEmptyTilePositions = []
+        borderTiles = []
+        allEmptyTiles = []
 
         for row in self.localBoard.grid:
             for tile in row:
                 if not tile.isFlagged:
                     if tile.isHidden:
-                        allEmptyTilePositions.append(tile.position)
+                        allEmptyTiles.append(tile)
                     if self.isBoundary(tile):
-                        borderTilePositions.append(tile.position)
+                        borderTiles.append(tile)
 
-        numberOfUnknowableTiles = len(allEmptyTilePositions) - len(borderTilePositions)
+        numberOfUnknowableTiles = len(allEmptyTiles) - len(borderTiles)
         borderOptimization = numberOfUnknowableTiles > BF_LIMIT
         if not borderOptimization:
-            borderTilePositions = allEmptyTilePositions
+            borderTiles = allEmptyTiles
 
         print "borderOptimization", borderOptimization
 
-        if not len(borderTilePositions):
+        if not len(borderTiles):
             raise ValueError("Backtracking has no tiles to examine. Something went wrong.")
 
         if borderOptimization:
-            borderSegments = self.segregate_border_tiles(borderTilePositions)
+            borderSegments = self.segregate_border_tiles(borderTiles)
         else:
-            borderSegments = [borderTilePositions]
+            borderSegments = [borderTiles]
 
         revealedTiles = []
-        for segment in borderSegments:
+        print "There are", len(borderSegments), "segments"
+        raw_input()
+        for i, segment in enumerate(borderSegments):
+            print "START BACKTRACKING ON SEGMENT", i + 1
+            segment = list(map(lambda tile: tile.position, segment))
             solutions = []
             self.backtrack_recursive(segment, self.localBoard.copy(), solutions, depth=0)
             # solutions is pass-by-reference thanks to how Python's lists work
@@ -122,7 +129,8 @@ class BacktrackingAI(object):
         return revealedTiles
 
     def is_tile_consistent(self, tilePosition, solutions):
-        return all(solutions[0].convert_coordinate_to_tile(*tilePosition).isFlagged == sln for sln in map(lambda solution: solution.convert_coordinate_to_tile(*tilePosition).isFlagged, solutions[1:]))
+        return all(solutions[0].convert_coordinate_to_tile(*tilePosition).isFlagged == sln for sln in
+                   map(lambda solution: solution.convert_coordinate_to_tile(*tilePosition).isFlagged, solutions[1:]))
 
     def isBoundary(self, tile):
         # A boundary tile is a hidden tile with revealed tiles near it.
@@ -132,7 +140,40 @@ class BacktrackingAI(object):
             return any(map(lambda s: not s.isHidden, self.localBoard.surrounding_tiles(tile)))
 
     def segregate_border_tiles(self, borderTiles):
-        return [borderTiles]
+        allRegions = []  # List of list of tiles
+        covered = []  # List of tiles
+
+        while True:
+            queue = []  # Queue of tiles
+            region = []  # List of tiles
+
+            # Find a suitable starting point
+            for tile in borderTiles:
+                if tile not in covered:
+                    region.append(tile)
+                    covered.append(tile)
+                    queue.append(tile)
+                    break
+
+            if not queue:
+                break
+
+            while queue:
+                currentTile = queue.pop(0)
+
+                for tile in self.localBoard.surrounding_tiles(currentTile):
+                    if tile in borderTiles and tile not in region:
+                        region.append(tile)
+                        covered.append(tile)
+                        queue.append(tile)
+                    elif tile.nearbyMines > 0:
+                        for s in filter(lambda s: s in borderTiles and s not in queue and s not in region,
+                                        self.localBoard.surrounding_tiles(tile)):
+                            queue.append(s)
+
+            allRegions.append(region)
+
+        return allRegions
 
     def backtrack_recursive(self, segment, board, solutions, depth):
         # If the board is not consistent, return. This is the backtrack
@@ -153,10 +194,10 @@ class BacktrackingAI(object):
         markedAsMine = board.copy()
         markedAsMine.toggle_flag(*segment[depth])
         markedAsMine.convert_coordinate_to_tile(*segment[depth]).set_as_mine()
-        self.backtrack_recursive(segment, markedAsMine, solutions, depth=depth+1)  # With mine
+        self.backtrack_recursive(segment, markedAsMine, solutions, depth=depth + 1)  # With mine
         markedAsNotAMine = board.copy()
         markedAsNotAMine.convert_coordinate_to_tile(*segment[depth]).isMine = False
-        self.backtrack_recursive(segment, markedAsNotAMine, solutions, depth=depth+1)  # Without mine
+        self.backtrack_recursive(segment, markedAsNotAMine, solutions, depth=depth + 1)  # Without mine
 
     def is_board_consistent(self, board):
         for row in board.grid:
@@ -212,6 +253,24 @@ if __name__ == '__main__':
             game.board.increment_tiles_around_mine(tile)
             game.board.minePositions.append(tile)
         game.reveal_callback = game.board.reveal
+    elif size == 7:
+        game.board = Board(30, 16)
+        game.mines = 99
+        for coords in [(0, 0), (2, 0), (5, 0), (3, 1), (5, 1), (18, 1), (22, 1), (24, 1), (26, 1), (4, 2), (5, 2),
+                       (10, 2), (17, 2), (18, 2), (19, 2), (21, 2), (26, 2), (1, 3), (2, 3), (4, 3), (7, 3), (18, 3),
+                       (22, 3), (24, 3), (25, 3), (26, 3), (4, 4), (7, 4), (13, 4), (16, 4), (22, 4), (3, 5), (5, 5),
+                       (6, 5), (10, 5), (12, 5), (17, 5), (20, 5), (23, 5), (3, 6), (18, 6), (19, 6), (20, 6), (0, 7),
+                       (4, 7), (7, 7), (8, 7), (12, 7), (21, 7), (23, 7), (24, 7), (0, 8), (2, 8), (6, 8), (9, 8),
+                       (12, 8), (26, 8), (29, 8), (2, 9), (4, 9), (6, 9), (8, 9), (20, 9), (24, 9), (28, 9), (2, 10),
+                       (8, 10), (20, 10), (29, 10), (0, 11), (1, 11), (6, 11), (9, 11), (10, 11), (12, 11), (19, 11),
+                       (22, 11), (3, 12), (6, 12), (8, 12), (20, 12), (27, 12), (29, 12), (0, 13), (9, 13), (10, 13),
+                       (11, 13), (13, 13), (16, 13), (24, 13), (5, 14), (15, 14), (17, 14), (22, 14), (24, 14),
+                       (13, 15), (19, 15), (23, 15), (28, 15)]:
+            tile = game.board.convert_coordinate_to_tile(*coords)
+            tile.set_as_mine()
+            game.board.increment_tiles_around_mine(tile)
+            game.board.minePositions.append(tile)
+        game.reveal_callback = game.board.reveal
 
     print game.show_board()
     ai = BacktrackingAI(game)
@@ -221,3 +280,10 @@ if __name__ == '__main__':
     while not game.board.check_end_game_win() and not game.board.check_end_game_loss():
         ai.next_move()
     print game.show_board()
+
+    minePositions = []
+    for row in game.board.grid:
+        for tile in row:
+            if tile.isFlagged:
+                minePositions.append(tile.position)
+    print minePositions
