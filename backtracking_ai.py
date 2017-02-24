@@ -103,7 +103,7 @@ class BacktrackingAI(object):
 
         revealedTiles = []
         print "There are", len(borderSegments), "segments"
-        raw_input()
+        # raw_input()
         for i, segment in enumerate(borderSegments):
             print "START BACKTRACKING ON SEGMENT", i + 1
             segment = list(map(lambda tile: tile.position, segment))
